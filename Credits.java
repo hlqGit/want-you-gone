@@ -85,6 +85,16 @@ public class Credits {
             case 7:
             System.out.println(line.substring(0, line.length()-1));
             break;
+
+            case 8: //very silly way to make it not go to next line at the end
+            for(int i = 0; i < line.length(); i++){
+                if( (line.charAt(i) >= 65 && line.charAt(i) <= 90) || (line.charAt(i) >= 97 && line.charAt(i) <= 122) 
+                || line.charAt(i) == 32 || line.charAt(i) == 63 || line.charAt(i) == 39 || line.charAt(i) == 91 || line.charAt(i) == 93) {
+                    System.out.print(line.charAt(i));
+                    Thread.sleep(150);
+                }
+            }
+            break;
         }
         
         switch(pause){
