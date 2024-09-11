@@ -1,110 +1,39 @@
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
 
-public class Credits {
+public class Credits{
+    
+    final static int TEMPO = 102;
+    private static final double MILLISECONDS_PER_BEAT = 60000.0 / TEMPO; // 600 ms per beat
+    private final static ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
+    private static Scanner lyrics;
+    private static double pause = 0;
+    private static Scanner printLyrics;
+
     public static void roll() throws InterruptedException, FileNotFoundException{
-        
+        Sound portalSong = new Sound("portalsong.wav");
+        portalSong.play();
+        lyrics = new Scanner(new File("text2print.dat"));
+        printLyrics = new Scanner(new File("text2print.dat"));
+        printLyrics.nextLine();
         System.out.println("\033[H\033[2J");
-        Sound portal = new Sound("portalsong.wav");
-        portal.play();
-        
-        Scanner lyrics = new Scanner(new File("text2print.dat"));
-        while(lyrics.hasNextLine()){
-            type(lyrics.nextLine());
-        }
-        
+        processLine(lyrics.nextLine());
         lyrics.close();
     }
 
-    public static void type(String line) throws InterruptedException{
-        int pause = checkPause(line);
-        int speed = checkSpeed(line);
-        
-        switch (speed) {
-            case 0:
-            for(int i = 0; i < line.length(); i++){
-                System.out.print(line.charAt(i));
-                Thread.sleep(85);
-            }
-            System.out.print("\n");
-            break;
-
-            case 1:
-            for(int i = 0; i < line.length(); i++){
-                if( (line.charAt(i) >= 65 && line.charAt(i) <= 90) || (line.charAt(i) >= 97 && line.charAt(i) <= 122) 
-                || line.charAt(i) == 32 || line.charAt(i) == 63 || line.charAt(i) == 39) {
-                    System.out.print(line.charAt(i));
-                    Thread.sleep(85);
-                }
-            }
-            System.out.print("\n");
-            break;
-
-            case 2:
-            for(int i = 0; i < line.length(); i++){
-                if( (line.charAt(i) >= 65 && line.charAt(i) <= 90) || (line.charAt(i) >= 97 && line.charAt(i) <= 122) 
-                || line.charAt(i) == 32 || line.charAt(i) == 63 || line.charAt(i) == 39) {
-                    System.out.print(line.charAt(i));
-                    Thread.sleep(100);
-                }
-            }
-            System.out.print("\n");
-            break;
-
-            case 3:
-            for(int i = 0; i < line.length(); i++){
-                if( (line.charAt(i) >= 65 && line.charAt(i) <= 90) || (line.charAt(i) >= 97 && line.charAt(i) <= 122) 
-                || line.charAt(i) == 32 || line.charAt(i) == 63 || line.charAt(i) == 39 || line.charAt(i) == 91 || line.charAt(i) == 93) {
-                    System.out.print(line.charAt(i));
-                    Thread.sleep(150);
-                }
-            }
-            System.out.print("\n");
-            break;
-
-            case 4:
-            for(int i = 0; i < line.length(); i++){
-                if( (line.charAt(i) >= 65 && line.charAt(i) <= 90) || (line.charAt(i) >= 97 && line.charAt(i) <= 122) 
-                || line.charAt(i) == 32 || line.charAt(i) == 63 || line.charAt(i) == 39 || line.charAt(i) == 40 || line.charAt(i) == 41
-                || line.charAt(i) == 44){
-                    System.out.print(line.charAt(i));
-                    Thread.sleep(65);
-                }
-            }
-            System.out.print("\n");
-            break;
-
-            case 5:
-            break;
-
-            case 6:
-            System.out.println("\033[H\033[2J");
-            break;
-
-            case 7:
-            System.out.println(line.substring(0, line.length()-1));
-            break;
-        }
-        
-        switch(pause){
-            case 1: Thread.sleep(500);
-            break;
-            case 2: Thread.sleep(1000);
-            break;
-            case 3: Thread.sleep(1300);
-            break;
-            case 4: Thread.sleep(1500); 
-            break;
-        }
+    public static void processLine(String line){
+        double restLength = checkRestLength(line);
+        rest(restLength);
     }
 
-    public static int checkPause(String line){
+    public static double checkRestLength(String line){
         boolean lineDot = true;
-        int pause = 0;
         while(lineDot){
             if(line.contains(".")){
-                pause++;
+                pause += 0.5;
                 line = line.substring(0, line.indexOf(".")) + line.substring(line.indexOf(".") + 1);
             } else {
                 lineDot = false;
@@ -114,16 +43,106 @@ public class Credits {
         return 0;
     }
 
-    public static int checkSpeed(String line){
-        if(line.matches(".*\\d.*")){
-            line = line.replaceAll("[^\\d]", "");
-            if(line.length() > 1){
-                return 0;
+    
+    public static void rest(double restLength) {
+        long restTimeMillis = (long) (restLength * MILLISECONDS_PER_BEAT);
+        if(lyrics.hasNextLine()){
+            processLine(lyrics.nextLine());
+        }
+        executor.schedule(() -> {
+            try {
+                print();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
-            if(line.substring(0, 1).matches(".*\\d.*")){
-                return Integer.parseInt(line);
+        }, restTimeMillis, TimeUnit.MILLISECONDS);
+    }
+
+    // Clean up the executor when you're done
+    public static void shutdown() {
+        executor.shutdown();
+    }
+
+    public static void print() throws FileNotFoundException, InterruptedException{
+        
+        String toPrint = printLyrics.nextLine();
+        int[] speed = checkSpeed(toPrint);
+        boolean secondHalf = false;
+        for(int i = 0; i < toPrint.length(); i++){
+            if(toPrint.substring(i, i+1).equals("/")){
+                System.out.print("\033[H\033[2J");
+                break;
+            }
+            if(toPrint.substring(i, i+1).matches("[\\w()?,\\[\\]:' -]") && !secondHalf) {
+                System.out.print(toPrint.charAt(i));
+                Thread.sleep(speed[0]);
+            } 
+            if(secondHalf && toPrint.substring(i, i+1).matches("[\\w()?,\\[\\]:' -]")){
+                System.out.print(toPrint.charAt(i));
+                Thread.sleep(speed[1]);
+            } else if (toPrint.substring(i, i+1).equals("*")){
+                secondHalf = true;
             }
         }
-        return 1;
+        if(speed[0] == 300){
+            Thread.sleep(7000);
+            System.out.print("\033[H\033[2J");
+            System.exit(0);
+        }
+        System.out.println();
+    }
+
+    public static int[] checkSpeed(String toPrint) {
+        toPrint = toPrint.replaceAll("[\\w()?,\\[\\]:' -]", "");
+        toPrint = toPrint.replaceAll("\\.", "");
+        int[] speed = new int[2];
+        if(toPrint.length() == 0){
+            return new int[]{65, 65};
+        }
+        if(toPrint.length() == 3){
+            for(int i = 1; i < 3; i ++){
+                switch(toPrint.charAt(i)){
+                    case '!': speed[i-1] = 65; 
+                    break;
+                    case '@': speed[i-1] = 85; 
+                    break;
+                    case '#': speed[i-1] = 100; 
+                    break;
+                    case '$': speed[i-1] = 150;
+                    break;
+                    case '%': speed[i-1] = 200;
+                    break;
+                    case '^': speed[i-1] = 250;
+                    break;
+                    case '&': speed[i-1] = 300;
+                    break; 
+                    case '<': speed[i-1] = 0;
+                    break;
+                }
+            }
+        }
+        if(toPrint.length() == 1){
+            switch(toPrint.charAt(0)){
+                case '!': speed[0] = 65; 
+                break;
+                case '@': speed[0] = 85; 
+                break;
+                case '#': speed[0] = 100; 
+                break;
+                case '$': speed[0] = 150;
+                break;
+                case '%': speed[0] = 200;
+                break;
+                case '^': speed[0] = 250;
+                break;
+                case '&': speed[0] = 300;
+                break; 
+                case '<': speed[0] = 0;
+                break;
+            }
+        }
+        return speed;
     }
 }

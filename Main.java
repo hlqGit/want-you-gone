@@ -1,7 +1,7 @@
 import java.io.FileNotFoundException;
 
-public class Main{
+public class Main {
     public static void main(String[] args) throws InterruptedException, FileNotFoundException {
-        Credits.roll();        
+        Credits.roll();
     }
 }
