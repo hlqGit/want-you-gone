@@ -1,5 +1,5 @@
 # Portal - *Want You Gone* in Java
-This program types out the lyrics similar to the credits screen during portal 2. It even plays the audio for it! Sadly, it doesn't list the personnel that worked on it as I couldn't really figure out a good way to do that.
+This program types out the lyrics similar to the credits screen during Portal 2. It even plays the audio for it! Sadly, it doesn't list the personnel that worked on it as I couldn't really figure out a good way to do that.
 ## How to install and run!
 **You *MUST* have java installed** to do this!  
   
